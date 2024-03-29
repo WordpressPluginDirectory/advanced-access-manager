@@ -57,8 +57,11 @@ class AAM_Core_Policy_Typecast
      *
      * @return mixed
      *
+     * @since 6.9.24 https://github.com/aamplugin/advanced-access-manager/issues/349
+     * @since 6.2.1  Initial implementation of the method
+     *
      * @access protected
-     * @version 6.2.1
+     * @version 6.9.24
      */
     private static function _typecast($value, $type)
     {
@@ -68,7 +71,18 @@ class AAM_Core_Policy_Typecast
                 break;
 
             case 'ip':
-                $value = inet_pton($value);
+                if (strpos($value, '/') !== false) {
+                    $value = function($ip) use ($value) {
+                        list ($subnet, $mask) = explode('/', $value);
+                        $ipLong     = is_string($ip) ? ip2long($ip) : $ip;
+                        $subnetLong = ip2long($subnet);
+                        $maskLong   = -1 << (32 - $mask);
+
+                        return ($subnetLong & $maskLong) === ($ipLong & $maskLong);
+                    };
+                } else {
+                    $value = ip2long($value);
+                }
                 break;
 
             case 'int':
