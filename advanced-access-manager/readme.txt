@@ -4,7 +4,7 @@ Tags: access control, backend menu, user role, restricted content, security
 Requires at least: 5.2.0
 Requires PHP: 5.6.0
 Tested up to: 6.5.3
-Stable tag: 6.9.28
+Stable tag: 6.9.29
 
 Take full control of your WordPress site with Advanced Access Manager (AAM), the ultimate plugin for managing access at the frontend, backend, and API levels for any role, user, or visitor.
 
@@ -79,6 +79,12 @@ Discover the power and flexibility of Advanced Access Manager and take control o
 11. Improve your website security
 
 == Changelog ==
+
+= 6.9.29 =
+* Fixed: Warning: Attempt to read property "capabilities" on null in [https://github.com/aamplugin/advanced-access-manager/issues/374](https://github.com/aamplugin/advanced-access-manager/issues/374)
+* Fixed: Warning: Attempt to read property "ID" on bool in [https://github.com/aamplugin/advanced-access-manager/issues/373](https://github.com/aamplugin/advanced-access-manager/issues/373)
+* Fixed: Stripped query strings in new account "set password" links AND Disallowed password reset [https://github.com/aamplugin/advanced-access-manager/issues/372](https://github.com/aamplugin/advanced-access-manager/issues/372)
+* Changed: Move Posts & Terms service to RESTful API [https://github.com/aamplugin/advanced-access-manager/issues/375](https://github.com/aamplugin/advanced-access-manager/issues/375)
 
 = 6.9.28 =
 * Fixed: Message: base64_encode(): Passing null to parameter #1 [https://github.com/aamplugin/advanced-access-manager/issues/370](https://github.com/aamplugin/advanced-access-manager/issues/370)
