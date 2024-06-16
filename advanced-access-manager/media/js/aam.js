@@ -736,45 +736,41 @@
             }
 
             /**
+             * Update user status
              *
-             * @param {type} id
-             * @param {type} btn
-             * @returns {undefined}
+             * @param {number} id
+             * @param {object} btn
+             *
+             * @returns {void}
              */
-            function blockUser(id, btn) {
-                var state = ($(btn).hasClass('icon-lock') ? 0 : 1);
+            function updateUserStatus(id, btn) {
+                const status = ($(btn).hasClass('icon-lock') ? 'active' : 'inactive');
 
-                $.ajax(getLocal().ajaxurl, {
+                $.ajax({
+                    url: `${getLocal().rest_base}aam/v2/user/${id}?fields=status`,
                     type: 'POST',
-                    dataType: 'json',
+                    headers: {
+                        'X-WP-Nonce': getLocal().rest_nonce
+                    },
                     data: {
-                        action: 'aam',
-                        // TODO: Refactor and move this to the SecureLogin service
-                        sub_action: 'Service_SecureLogin.toggleUserStatus',
-                        _ajax_nonce: getLocal().nonce,
-                        subject: 'user',
-                        subjectId: id
+                        status
                     },
                     beforeSend: function () {
                         $(btn).attr('class', 'aam-row-action icon-spin4 animate-spin');
                     },
                     success: function (response) {
-                        if (response.status === 'success') {
-                            if (state === 1) {
-                                $(btn).attr({
-                                    'class': 'aam-row-action icon-lock text-danger',
-                                    'title': getAAM().__('Unlock user'),
-                                    'data-original-title': getAAM().__('Unlock user')
-                                });
-                            } else {
-                                $(btn).attr({
-                                    'class': 'aam-row-action icon-lock-open text-warning',
-                                    'title': getAAM().__('Lock user'),
-                                    'data-original-title': getAAM().__('Lock user')
-                                });
-                            }
+                        if (response.status === 'inactive') {
+                            $(btn).attr({
+                                'class': 'aam-row-action icon-lock text-danger',
+                                'title': getAAM().__('Unlock user'),
+                                'data-original-title': getAAM().__('Unlock user')
+                            });
                         } else {
-                            getAAM().notification('danger', getAAM().__('Failed to lock user'));
+                            $(btn).attr({
+                                'class': 'aam-row-action icon-lock-open text-success',
+                                'title': getAAM().__('Lock user'),
+                                'data-original-title': getAAM().__('Lock user')
+                            });
                         }
                     },
                     error: function () {
@@ -794,7 +790,7 @@
 
                     const payload = {
                         user_id: $('#reset-user-expiration-btn').attr('data-user-id'),
-                        expires_at: (new Date($('#user-expires').val() * 1000)).toISOString(),
+                        expires_at: $('#user-expires').val(),
                     };
 
                     if (action) {
@@ -804,7 +800,7 @@
                             }
                         }
 
-                        if (action === 'change-role') {
+                        if (action === 'change_role') {
                             payload.additional_claims.trigger.meta = $('#expiration-change-role').val();
                         }
                     }
@@ -834,32 +830,94 @@
             //initialize the user list table
             $('#user-list').DataTable({
                 autoWidth: false,
-                ordering: true,
+                ordering: false,
                 dom: 'ftrip',
                 stateSave: true,
                 pagingType: 'simple',
                 serverSide: true,
                 processing: true,
-                ajax: {
-                    url: getLocal().ajaxurl,
-                    type: 'POST',
-                    dataType: 'json',
-                    data: function (params) {
-                        params.action = 'aam';
-                        params.sub_action = 'Subject_User.getTable';
-                        params._ajax_nonce = getLocal().nonce;
-                        params.role = $('#user-list-filter').val();
-                        params.subject = getAAM().getSubject().type;
-                        params.subjectId = getAAM().getSubject().id;
-                        params.ui = getLocal().ui;
-                        params.policyId = $('#aam-policy-id').val();
+                ajax: function(filters, cb) {
+                    const fields = [
+                        'roles',
+                        'display_name',
+                        'permissions',
+                        'user_level',
+                        'expiration'
+                    ];
 
-                        return params;
+                    if(getAAM().isUI('principal')) {
+                        fields.push('policies');
                     }
+
+                    $.ajax({
+                        url: `${getLocal().rest_base}aam/v2/users`,
+                        type: 'GET',
+                        headers: {
+                            'X-WP-Nonce': getLocal().rest_nonce
+                        },
+                        data: {
+                            search: filters.search.value,
+                            per_page: filters.length,
+                            offset: filters.start,
+                            fields: fields.join(','),
+                            role: $('#user-list-filter').val()
+                        },
+                        success: function (response) {
+                            const result = {
+                                data: [],
+                                recordsTotal: 0,
+                                recordsFiltered: 0
+                            };
+
+                            // Transform the received data into DT format
+                            const policyId = parseInt($('#aam-policy-id').val(), 10);
+
+                            $.each(response.list, (_, user) => {
+                                const actions = [];
+
+                                if (getLocal().ui === 'principal' && policyId) {
+                                    if (user.policies && user.policies.includes(policyId)) {
+                                        actions.push('detach');
+                                    } else {
+                                        actions.push('attach');
+                                    }
+                                } else {
+                                    if (user.permissions.includes('allow_manage')) {
+                                        actions.push('manage');
+                                    }
+
+                                    if (user.permissions.includes('allow_edit')) {
+                                        actions.push('edit');
+                                    } else {
+                                        actions.push('no-edit');
+                                    }
+
+                                    if (user.permissions.includes('allow_unlock')) {
+                                        actions.push('unlock');
+                                    } else if (user.permissions.includes('allow_lock')) {
+                                        actions.push('lock');
+                                    }
+                                }
+
+                                result.data.push([
+                                    user.id,
+                                    user.roles.join(', '),
+                                    user.display_name,
+                                    actions.join(','),
+                                    user.user_level,
+                                    user.expiration || null
+                                ]);
+                            });
+
+                            result.recordsTotal    = response.summary.total_count;
+                            result.recordsFiltered = response.summary.filtered_count;
+
+                            cb(result);
+                        }
+                    });
                 },
                 columnDefs: [
-                    { visible: false, targets: [0, 1, 4, 5] },
-                    { orderable: false, targets: [0, 1, 3, 4, 5] }
+                    { visible: false, targets: [0, 1, 4, 5] }
                 ],
                 language: {
                     search: '_INPUT_',
@@ -993,13 +1051,12 @@
 
                                             if (data[5]) {
                                                 $('#reset-user-expiration-btn').removeClass('hidden');
-                                                var settings = data[5].split('|');
-                                                $('#user-expires').val(settings[0]);
-                                                $('#action-after-expiration').val(settings[1]);
+                                                $('#user-expires').val(data[5].expires_at);
+                                                $('#action-after-expiration').val(data[5].trigger.type);
 
-                                                if (settings[1] === 'change-role') {
+                                                if (data[5].trigger.type === 'change_role') {
                                                     $('#expiration-change-role-holder').removeClass('hidden');
-                                                    getAAM().loadRoleList(settings[2]);
+                                                    getAAM().loadRoleList(data[5].trigger.to_role);
                                                 } else {
                                                     getAAM().loadRoleList();
                                                     $('#expiration-change-role-holder').addClass('hidden');
@@ -1032,7 +1089,7 @@
                                         $(container).append($('<i/>', {
                                             'class': 'aam-row-action icon-lock-open text-success'
                                         }).bind('click', function () {
-                                            blockUser(data[0], $(this));
+                                            updateUserStatus(data[0], $(this));
                                         }).attr({
                                             'data-toggle': "tooltip",
                                             'title': getAAM().__('Lock user')
@@ -1056,7 +1113,7 @@
                                         $(container).append($('<i/>', {
                                             'class': 'aam-row-action icon-lock text-danger'
                                         }).bind('click', function () {
-                                            blockUser(data[0], $(this));
+                                            updateUserStatus(data[0], $(this));
                                         }).attr({
                                             'data-toggle': "tooltip",
                                             'title': getAAM().__('Unlock user')
@@ -1150,7 +1207,7 @@
             });
 
             $('#action-after-expiration').bind('change', function () {
-                if ($(this).val() === 'change-role') {
+                if ($(this).val() === 'change_role') {
                     $('#expiration-change-role-holder').removeClass('hidden');
                 } else {
                     $('#expiration-change-role-holder').addClass('hidden');
@@ -1194,34 +1251,48 @@
             });
 
             $('#user-expiration-datapicker').on('dp.change', function (res) {
-                $('#user-expires').val(res.date.unix());
+                $('#user-expires').val(res.date.format());
             });
 
             //edit role button
             $('#edit-user-expiration-btn').bind('click', function () {
                 var _this = this;
 
-                $.ajax(getLocal().ajaxurl, {
+                // Get currently editing user ID
+                const id = $(_this).attr('data-user-id');
+
+                // Preparing the payload
+                const payload = {
+                    expires_at: $('#user-expires').val()
+                };
+
+                // Gathering expiration attributes
+                const expiration_trigger = $('#action-after-expiration').val() || 'logout';
+
+                if (expiration_trigger) {
+                    payload.trigger = {
+                        type: expiration_trigger
+                    };
+
+                    if (expiration_trigger === 'change_role') {
+                        payload.trigger.to_role = $('#expiration-change-role').val();
+                    }
+                }
+
+                $.ajax({
+                    url: `${getLocal().rest_base}aam/v2/user/${id}`,
                     type: 'POST',
-                    dataType: 'json',
+                    headers: {
+                        'X-WP-Nonce': getLocal().rest_nonce
+                    },
                     data: {
-                        action: 'aam',
-                        sub_action: 'Subject_User.saveExpiration',
-                        _ajax_nonce: getLocal().nonce,
-                        user: $(_this).attr('data-user-id'),
-                        expires: $('#user-expires').val(),
-                        after: $('#action-after-expiration').val(),
-                        role: $('#expiration-change-role').val()
+                        expiration: payload
                     },
                     beforeSend: function () {
                         $(_this).text(getAAM().__('Saving...')).attr('disabled', true);
                     },
-                    success: function (response) {
-                        if (response.status === 'success') {
-                            $('#user-list').DataTable().ajax.reload();
-                        } else {
-                            getAAM().notification('danger', response.reason);
-                        }
+                    success: function () {
+                        $('#user-list').DataTable().ajax.reload();
                     },
                     error: function () {
                         getAAM().notification('danger');
@@ -1237,24 +1308,20 @@
             $('#reset-user-expiration-btn').bind('click', function () {
                 var _this = this;
 
-                $.ajax(getLocal().ajaxurl, {
+                const id = $(_this).attr('data-user-id');
+
+                $.ajax({
+                    url: `${getLocal().rest_base}aam/v2/user/${id}/settings`,
                     type: 'POST',
-                    dataType: 'json',
-                    data: {
-                        action: 'aam',
-                        sub_action: 'Subject_User.resetExpiration',
-                        _ajax_nonce: getLocal().nonce,
-                        user: $(_this).attr('data-user-id')
+                    headers: {
+                        'X-WP-Nonce': getLocal().rest_nonce,
+                        'X-HTTP-Method-Override': 'DELETE'
                     },
                     beforeSend: function () {
                         $(_this).text(getAAM().__('Resetting...')).attr('disabled', true);
                     },
-                    success: function (response) {
-                        if (response.status === 'success') {
-                            $('#user-list').DataTable().ajax.reload();
-                        } else {
-                            getAAM().notification('danger', response.reason);
-                        }
+                    success: function () {
+                        $('#user-list').DataTable().ajax.reload();
                     },
                     error: function () {
                         getAAM().notification('danger');
@@ -2727,6 +2794,9 @@
                 }
             ];
 
+            // Internal cache
+            const cache = {};
+
             /**
              *
              * @returns
@@ -2738,7 +2808,7 @@
             /**
              *
              */
-            function RenderBreadcrumb() {
+            function RenderBreadcrumb(reload) {
                 // Resetting the breadcrumb
                 $('.aam-post-breadcrumb').empty();
 
@@ -2785,32 +2855,24 @@
                     }
                 });
 
-                AdjustList();
+                AdjustList(reload);
             }
 
             /**
              *
-             * @param {type} type
-             * @param {type} id
-             * @param {type} title
-             * @returns {undefined}
+             * @param {*} node
              */
-            function AddToBreadcrumb(level_type, level_id, label, scope = null) {
+            function AddToBreadcrumb(node) {
                 // If the last breadcrumb item has the same level, replace it
                 const last = breadcrumb[breadcrumb.length - 1];
 
-                if (level_type === last.level_type) {
+                if (node.level_type === last.level_type) {
                     breadcrumb.pop();
                 }
 
-                breadcrumb.push({
-                    label,
-                    level_type,
-                    level_id,
-                    scope
-                });
+                breadcrumb.push(node);
 
-                RenderBreadcrumb();
+                RenderBreadcrumb(node.reload);
             }
 
             /**
@@ -2822,7 +2884,11 @@
             function ReplaceInBreadcrumb(level_type, level_id, label) {
                 breadcrumb.pop();
 
-                AddToBreadcrumb(level_type, level_id, label);
+                AddToBreadcrumb({
+                    level_type,
+                    level_id,
+                    label
+                });
             }
 
             /**
@@ -2830,7 +2896,7 @@
              */
             function NavigateBack() {
                 breadcrumb.pop();
-                RenderBreadcrumb();
+                RenderBreadcrumb(false);
             }
 
             /**
@@ -2868,6 +2934,23 @@
                                     'data-id': object_id
                                 });
                             }
+
+                            // Manually update the data in a table because both
+                            // Post Types & Taxonomies are static tables
+                            if (['type', 'taxonomy'].includes(object)) {
+                                let row = null;
+
+                                if (object === 'type') {
+                                    row = cache.post_types.data.filter(t => t[0] === object_id).pop();
+                                } else {
+                                    row = cache.taxonomies.data.filter(t => t[0] === object_id).pop();
+                                }
+
+                                if (row[4].inheritance !== undefined) {
+                                    row[4].inheritance.is_overwritten = true;
+                                }
+                            }
+
                             successCallback(response);
                         },
                         error: function () {
@@ -2981,30 +3064,53 @@
 
                 // Initialize the Reset to default button
                 $('#content-reset').bind('click', function () {
-                    var type = $(this).attr('data-type');
-                    var id = $(this).attr('data-id');
+                    const type   = $(this).attr('data-type');
+                    const id     = $(this).attr('data-id');
+                    const obj_id = id.split('|')[0];
 
-                    $.ajax(getLocal().ajaxurl, {
+                    const payload = {};
+
+                    if (CurrentLevel().scope) {
+                        payload.scope = CurrentLevel().scope;
+
+                        if (payload.scope === 'post') {
+                            payload.post_type = CurrentLevel().scope_id;
+                        }
+                    }
+
+                    $.ajax(`${getLocal().rest_base}aam/v2/service/content/${type}/${obj_id}`, {
                         type: 'POST',
-                        dataType: 'json',
-                        data: {
-                            action: 'aam',
-                            sub_action: 'Main_Post.reset',
-                            _ajax_nonce: getLocal().nonce,
-                            type: type,
-                            id: id,
-                            subject: getAAM().getSubject().type,
-                            subjectId: getAAM().getSubject().id
+                        headers: {
+                            'X-WP-Nonce': getLocal().rest_nonce,
+                            'X-HTTP-Method-Override': 'DELETE'
                         },
+                        data: getAAM().prepareRequestSubjectData(payload),
                         beforeSend: function () {
                             var label = $('#content-reset').text();
                             $('#content-reset').attr('data-original-label', label);
                             $('#content-reset').text(getAAM().__('Resetting...'));
                         },
-                        success: function (response) {
-                            if (response.status === 'success') {
-                                $('#post-overwritten').addClass('hidden');
-                                RenderAccessForm(type, id);
+                        success: function () {
+                            $('#post-overwritten').addClass('hidden');
+
+                            RenderAccessForm(type, id);
+
+                            // Manually update the data in a table because both
+                            // Post Types & Taxonomies are static tables
+                            if (['type', 'taxonomy'].includes(type)) {
+                                let row = null;
+
+                                if (type === 'type') {
+                                    row = cache.post_types.data.filter(t => t[0] === obj_id).pop();
+                                } else {
+                                    row = cache.taxonomies.data.filter(t => t[0] === obj_id).pop();
+                                }
+
+                                if (row[4].inheritance
+                                    && row[4].inheritance.is_overwritten
+                                ) {
+                                    row[4].inheritance.is_overwritten = false;
+                                }
                             }
                         },
                         complete: function () {
@@ -3216,41 +3322,44 @@
                 save(...params);
             });
 
-            // Internal cache
-            const cache = {};
-
             /**
              *
              * @param {*} cb
              */
             function FetchPostTypeList(cb) {
-                // Fetching the list of all registered post types.
-                $.ajax(`${getLocal().rest_base}aam/v2/service/content/types`, {
-                    type: 'GET',
-                    headers: {
-                        'X-WP-Nonce': getLocal().rest_nonce
-                    },
-                    data: getAAM().prepareRequestSubjectData(),
-                    success: function (response) {
-                        const types = [];
+                if (cache.post_types === undefined) {
+                    // Fetching the list of all registered post types.
+                    $.ajax(`${getLocal().rest_base}aam/v2/service/content/types`, {
+                        type: 'GET',
+                        headers: {
+                            'X-WP-Nonce': getLocal().rest_nonce
+                        },
+                        data: getAAM().prepareRequestSubjectData(),
+                        success: function (response) {
+                            const types = [];
 
-                        $.each(response.list, (_, item) => {
-                            types.push([
-                                item.slug,
-                                item.icon || (item.is_hierarchical ? 'dashicons-admin-page' : 'dashicons-media-default'),
-                                item.title,
-                                ['drilldown', 'manage'],
-                                item
-                            ]);
-                        });
+                            $.each(response.list, (_, item) => {
+                                types.push([
+                                    item.slug,
+                                    item.icon || (item.is_hierarchical ? 'dashicons-admin-page' : 'dashicons-media-default'),
+                                    item.title,
+                                    ['drilldown', 'manage'],
+                                    item
+                                ]);
+                            });
 
-                        cb({
-                            data: types,
-                            recordsTotal: response.stats.total_count,
-                            recordsFiltered: response.stats.filtered_count
-                        });
-                    }
-                });
+                            cache.post_types = {
+                                data: types,
+                                recordsTotal: response.summary.total_count,
+                                recordsFiltered: response.summary.filtered_count
+                            };
+
+                            cb(cache.post_types);
+                        }
+                    });
+                } else {
+                    cb(cache.post_types);
+                }
             }
 
             /**
@@ -3259,7 +3368,7 @@
              */
             function FetchTaxonomyList(cb) {
                 // Fetching the list of all registered post types.
-                if (cache.taxonomy_list === undefined) {
+                if (cache.taxonomies === undefined) {
                     $.ajax(`${getLocal().rest_base}aam/v2/service/content/taxonomies`, {
                         type: 'GET',
                         headers: {
@@ -3279,17 +3388,17 @@
                                 ]);
                             });
 
-                            cache.taxonomy_list = {
+                            cache.taxonomies = {
                                 data: taxonomies,
-                                recordsTotal: response.stats.total_count,
-                                recordsFiltered: response.stats.filtered_count
+                                recordsTotal: response.summary.total_count,
+                                recordsFiltered: response.summary.filtered_count
                             };
 
-                            cb(cache.taxonomy_list);
+                            cb(cache.taxonomies);
                         }
                     });
                 } else {
-                    cb(cache.taxonomy_list);
+                    cb(cache.taxonomies);
                 }
             }
 
@@ -3329,8 +3438,8 @@
                                 ]);
                             });
 
-                            result.recordsTotal = response.stats.total_count;
-                            result.recordsFiltered = response.stats.filtered_count;
+                            result.recordsTotal = response.summary.total_count;
+                            result.recordsFiltered = response.summary.filtered_count;
                         }
 
                         cb(result);
@@ -3352,7 +3461,8 @@
                 };
 
                 if (CurrentLevel().scope) {
-                    payload.scope = CurrentLevel().scope;
+                    payload.scope     = CurrentLevel().scope;
+                    payload.post_type = CurrentLevel().scope_id;
                 }
 
                 // Fetching the list of terms
@@ -3374,13 +3484,17 @@
                                 item.id,
                                 item.is_hierarchical ? 'dashicons-category' : 'dashicons-tag',
                                 item.title,
-                                ['edit', 'manage'],
+                                getAAM().applyFilters(
+                                    'aam-term-actions',
+                                    ['edit', 'manage'],
+                                    item
+                                ),
                                 item
                             ]);
                         });
 
-                        result.recordsTotal = response.stats.total_count;
-                        result.recordsFiltered = response.stats.filtered_count;
+                        result.recordsTotal = response.summary.total_count;
+                        result.recordsFiltered = response.summary.filtered_count;
 
                         cb(result);
                     }
@@ -3390,22 +3504,26 @@
             /**
              *
              */
-            function AdjustList() {
+            function AdjustList(reload = true) {
                 const current = CurrentLevel();
 
                 if ([null, 'type_list'].includes(current.level_type)) {
-                    PrepareTypeListTable();
+                    PrepareTypeListTable(reload);
                 } else if (current.level_type === 'taxonomy_list') {
-                    PrepareTaxonomyListTable();
+                    PrepareTaxonomyListTable(reload);
                 } else if (current.level_type === 'type_posts') {
-                    PreparePostListTable();
+                    PreparePostListTable(reload);
                 } else if (current.level_type === 'type_terms') {
-                    PrepareTermListTable(CurrentLevel().scope);
+                    PrepareTermListTable(CurrentLevel().scope, reload);
                 } else if (current.level_type === 'taxonomy_terms') {
-                    PrepareTermListTable()
+                    PrepareTermListTable(null, reload)
                 }
             }
 
+            /**
+             *
+             * @returns
+             */
             function RenderTypeTaxonomySwitch(){
                 const current = CurrentLevel();
                 const options = [
@@ -3436,6 +3554,10 @@
                 });
             }
 
+            /**
+             *
+             * @param {*} filter_id
+             */
             function RenderPostTaxonomySwitch(filter_id) {
                 FetchTaxonomyList(function(response) {
                     const current = CurrentLevel();
@@ -3462,12 +3584,13 @@
                         const value                       = $(this).val();
                         const [level_type, post_type, id] = $(this).val().split(':');
 
-                        AddToBreadcrumb(
+                        AddToBreadcrumb({
                             level_type,
-                            id,
-                            $(`.aam-post-taxonomy-filter option:selected`).text(),
-                            post_type
-                        );
+                            level_id: id,
+                            label: $(`.aam-post-taxonomy-filter option:selected`).text(),
+                            scope: 'post',
+                            scope_id: post_type
+                        });
 
                         $(`.aam-post-taxonomy-filter option[value="${value}"]`).prop(
                             'selected', true
@@ -3482,13 +3605,26 @@
                 });
             }
 
-            function NavigateToAccessForm(level_type, level_id, level_label, btn) {
-                RenderAccessForm(level_type, level_id, btn, () => {
+            /**
+             *
+             * @param {*} data
+             */
+            function NavigateToAccessForm(data) {
+                RenderAccessForm(data.level_type, data.level_id, data.btn, () => {
                     // Update the breadcrumb
-                    AddToBreadcrumb(level_type, level_id, level_label);
+                    AddToBreadcrumb({
+                        level_type: data.level_type,
+                        level_id: data.level_id,
+                        label: data.label,
+                        scope: data.scope,
+                        scope_id: data.scope_id
+                    });
                 });
             }
 
+            /**
+             *
+             */
             function PrepareTypeListTable() {
                 $('#post-content .dataTables_wrapper').addClass('hidden');
                 $('#post-content .table').addClass('hidden');
@@ -3533,7 +3669,11 @@
                                 $('td:eq(1)', row).html($('<a/>', {
                                 href: '#'
                             }).bind('click', function () {
-                                AddToBreadcrumb('type_posts', data[0], data[2]);
+                                AddToBreadcrumb({
+                                    level_type: 'type_posts',
+                                    level_id: data[0],
+                                    label: data[2]
+                                });
                             }).html(data[2]));
 
                             $('td:eq(1)', row).append(`<sup>${data[0]}</sup>`);
@@ -3558,9 +3698,12 @@
                                         $(container).append($('<i/>', {
                                             'class': 'aam-row-action text-info icon-cog'
                                         }).bind('click', function () {
-                                            NavigateToAccessForm(
-                                                'type', data[0], data[2], $(this)
-                                            );
+                                            NavigateToAccessForm({
+                                                level_type: 'type',
+                                                level_id: data[0],
+                                                label: data[2],
+                                                btn: $(this)
+                                            });
                                         }).attr({
                                             'data-toggle': "tooltip",
                                             'title': getAAM().__('Manage Access')
@@ -3580,12 +3723,17 @@
                             $('td:eq(2)', row).html(container);
                         }
                     });
+                } else {
+                    $('#type-list').DataTable().ajax.reload(null, false);
                 }
 
                 $('#type-list_wrapper .table').removeClass('hidden');
                 $('#type-list_wrapper').removeClass('hidden');
             }
 
+            /**
+             *
+             */
             function PrepareTaxonomyListTable() {
                 $('#post-content .dataTables_wrapper').addClass('hidden');
                 $('#post-content .table').addClass('hidden');
@@ -3630,7 +3778,11 @@
                                 $('td:eq(1)', row).html($('<a/>', {
                                 href: '#'
                             }).bind('click', function () {
-                                AddToBreadcrumb('taxonomy_terms', data[0], data[2]);
+                                AddToBreadcrumb({
+                                    level_type: 'taxonomy_terms',
+                                    level_id: data[0],
+                                    label: data[2]
+                                });
                             }).html(data[2]));
 
                             $('td:eq(1)', row).append(`<sup>${data[0]}</sup>`);
@@ -3655,9 +3807,12 @@
                                         $(container).append($('<i/>', {
                                             'class': 'aam-row-action text-info icon-cog'
                                         }).bind('click', function () {
-                                            NavigateToAccessForm(
-                                                'taxonomy', data[0], data[2], $(this)
-                                            );
+                                            NavigateToAccessForm({
+                                                level_type: 'taxonomy',
+                                                level_id: data[0],
+                                                label: data[2],
+                                                btn: $(this)
+                                            });
                                         }).attr({
                                             'data-toggle': "tooltip",
                                             'title': getAAM().__('Manage Access')
@@ -3677,13 +3832,18 @@
                             $('td:eq(2)', row).html(container);
                         }
                     });
+                } else {
+                    $('#taxonomy-list').DataTable().ajax.reload(null, false);
                 }
 
                 $('#taxonomy-list_wrapper .table').removeClass('hidden');
                 $('#taxonomy-list_wrapper').removeClass('hidden');
             }
 
-            function PreparePostListTable() {
+            /**
+             *
+             */
+            function PreparePostListTable(reload = false) {
                 $('#post-content .dataTables_wrapper').addClass('hidden');
                 $('#post-content .table').addClass('hidden');
 
@@ -3693,7 +3853,7 @@
                         ordering: false,
                         processing: true,
                         serverSide: true,
-                        saveState: true,
+                        pagingType: 'simple_numbers',
                         ajax: function(filters, cb) {
                             FetchPostList(filters, cb);
                         },
@@ -3727,12 +3887,11 @@
                                 $('td:eq(1)', row).html($('<a/>', {
                                 href: '#'
                             }).bind('click', function () {
-                                NavigateToAccessForm(
-                                    'post', data[0], data[2], $('.icon-cog', row)
-                                );
-                                RenderAccessForm('post', data[0], $('.icon-cog', row), () => {
-                                    // Update the breadcrumb
-                                    AddToBreadcrumb('post', data[0], data[2]);
+                                NavigateToAccessForm({
+                                    level_type: 'post',
+                                    level_id: data[0],
+                                    label: data[2],
+                                    btn: $('.icon-cog', row)
                                 });
                             }).html(data[2]));
 
@@ -3746,9 +3905,12 @@
                                         $(container).append($('<i/>', {
                                             'class': 'aam-row-action text-info icon-cog'
                                         }).bind('click', function () {
-                                            NavigateToAccessForm(
-                                                'post', data[0], data[2], $(this)
-                                            );
+                                            NavigateToAccessForm({
+                                                level_type: 'post',
+                                                level_id: data[0],
+                                                label: data[2],
+                                                btn: $(this)
+                                            });
                                         }).attr({
                                             'data-toggle': "tooltip",
                                             'title': getAAM().__('Manage Access')
@@ -3790,7 +3952,7 @@
                     });
                 } else {
                     // Reload list of posts
-                    $('#post-list').DataTable().ajax.reload();
+                    $('#post-list').DataTable().ajax.reload(null, reload);
                     // Reload the list of taxonomies
                     RenderPostTaxonomySwitch('#post-list_length');
                 }
@@ -3799,7 +3961,11 @@
                 $('#post-list_wrapper').removeClass('hidden');
             }
 
-            function PrepareTermListTable(scope = null) {
+            /**
+             *
+             * @param {*} scope
+             */
+            function PrepareTermListTable(scope = null, reload = false) {
                 $('#post-content .dataTables_wrapper').addClass('hidden');
                 $('#post-content .table').addClass('hidden');
 
@@ -3812,7 +3978,7 @@
                         pagingType: 'simple',
                         processing: true,
                         serverSide: true,
-                        saveState: true,
+                        pagingType: 'simple_numbers',
                         ajax: function(filters, cb) {
                             FetchTermList(filters, cb);
                         },
@@ -3842,14 +4008,27 @@
                                 $('td:eq(1)', row).html($('<a/>', {
                                 href: '#'
                             }).bind('click', function () {
-                                const scope = $('#term-list').attr('data-scope');
+                                const scope  = $('#term-list').attr('data-scope');
+                                let scope_id = null;
 
-                                NavigateToAccessForm(
-                                    'term',
-                                    `${data[0]}|${data[4].taxonomy}${scope ? '|' + scope : ''}`,
-                                    data[2],
-                                    $('.icon-cog', row)
-                                );
+                                // Preparing internal AAM term's id
+                                let id = `${data[0]}|${data[4].taxonomy}`;
+
+                                // If scope is post, then we are withing certain
+                                // post type
+                                if (scope === 'post') {
+                                    id      += `|${data[4].post_type}`;
+                                    scope_id = data[4].post_type;
+                                }
+
+                                NavigateToAccessForm({
+                                    level_type: 'term',
+                                    level_id: id,
+                                    label: data[2],
+                                    btn:  $('.icon-cog', row),
+                                    scope,
+                                    scope_id
+                                });
                             }).html(data[2]));
 
                             $('td:eq(1)', row).append(`<sup>ID: ${data[0]}</sup>`);
@@ -3863,13 +4042,26 @@
                                             'class': 'aam-row-action text-info icon-cog'
                                         }).bind('click', function () {
                                             const scope = $('#term-list').attr('data-scope');
+                                            let scope_id = null;
 
-                                            NavigateToAccessForm(
-                                                'term',
-                                                `${data[0]}|${data[4].taxonomy}${scope ? '|' + scope : ''}`,
-                                                data[2],
-                                                $(this)
-                                            );
+                                            // Preparing internal AAM term's id
+                                            let id = `${data[0]}|${data[4].taxonomy}`;
+
+                                            // If scope is post, then we are withing certain
+                                            // post type
+                                            if (scope === 'post') {
+                                                id      += `|${data[4].post_type}`;
+                                                scope_id = data[4].post_type;
+                                            }
+
+                                            NavigateToAccessForm({
+                                                level_type: 'term',
+                                                level_id: id,
+                                                label: data[2],
+                                                btn: $(this),
+                                                scope,
+                                                scope_id
+                                            });
                                         }).attr({
                                             'data-toggle': "tooltip",
                                             'title': getAAM().__('Manage Access')
@@ -3908,7 +4100,7 @@
                         }
                     });
                 } else {
-                    $('#term-list').DataTable().ajax.reload();
+                    $('#term-list').DataTable().ajax.reload(null, reload);
                 }
 
                 $('#term-list_wrapper .table').removeClass('hidden');
@@ -3927,6 +4119,17 @@
                         $('.aam-slide-form').removeClass('active');
                         NavigateBack();
                     });
+
+                    // Adjust current list when switching between subjects or pages
+                    AdjustList();
+                }
+
+                // Take into consideration the initial load of a AAM Metabox
+                const level_type = $('#content-object-type').val();
+                const level_id = $('#content-object-id').val();
+
+                if (level_type) {
+                    InitializeAccessForm(level_type, level_id);
                 }
             }
 

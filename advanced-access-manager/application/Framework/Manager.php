@@ -12,6 +12,8 @@
  *
  * @package AAM
  *
+ * @since 6.9.32 https://github.com/aamplugin/advanced-access-manager/issues/390
+ * @since 6.9.31 https://github.com/aamplugin/advanced-access-manager/issues/383
  * @since 6.9.28 https://github.com/aamplugin/advanced-access-manager/issues/369
  * @since 6.9.14 https://github.com/aamplugin/advanced-access-manager/issues/309
  * @since 6.9.13 https://github.com/aamplugin/advanced-access-manager/issues/302
@@ -23,7 +25,7 @@
  * @since 6.9.9  https://github.com/aamplugin/advanced-access-manager/issues/266
  * @since 6.9.6  Initial implementation of the class
  *
- * @version 6.9.28
+ * @version 6.9.32
  */
 class AAM_Framework_Manager
 {
@@ -206,6 +208,34 @@ class AAM_Framework_Manager
     public static function identity_governance($runtime_context = null)
     {
         return AAM_Framework_Service_IdentityGovernance::get_instance($runtime_context);
+    }
+
+    /**
+     * Get the Content service
+     *
+     * @param array $runtime_context
+     *
+     * @return AAM_Framework_Service_Content
+     *
+     * @access public
+     * @version 6.9.31
+     */
+    public static function content($runtime_context = null)
+    {
+        return AAM_Framework_Service_Content::get_instance($runtime_context);
+    }
+
+    /**
+     * Get the Users service
+     *
+     * @return AAM_Framework_Service_Users
+     *
+     * @access public
+     * @version 6.9.32
+     */
+    public static function users()
+    {
+        return AAM_Framework_Service_Users::bootstrap();
     }
 
     /**
