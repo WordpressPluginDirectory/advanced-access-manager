@@ -10,8 +10,11 @@
 /**
  * AAM chatbot
  *
+ * @since 6.9.35 https://github.com/aamplugin/advanced-access-manager/issues/402
+ * @since 6.9.27 Initial implementation of the class
+ *
  * @package AAM
- * @version 6.9.27
+ * @version 6.9.35
  */
 class AAM_Service_Chatbot
 {
@@ -29,11 +32,22 @@ class AAM_Service_Chatbot
      *
      * @return void
      *
+     * @since 6.9.35 https://github.com/aamplugin/advanced-access-manager/issues/402
+     * @since 6.9.27 Initial implementation of the method
+     *
      * @access protected
-     * @version 6.9.27
+     * @version 6.9.35
      */
     protected function __construct()
     {
+        add_filter('aam_get_config_filter', function($result, $key) {
+            if ($key === self::FEATURE_FLAG && is_null($result)) {
+                $result = false;
+            }
+
+            return $result;
+        }, 10, 2);
+
         if (is_admin()) {
             // Hook that returns the detailed information about the nature of the
             // service. This is used to display information about service on the
@@ -49,7 +63,7 @@ class AAM_Service_Chatbot
             }, 40);
         }
 
-        if (AAM_Core_Config::get(self::FEATURE_FLAG, true)) {
+        if (AAM_Framework_Manager::configs()->get_config(self::FEATURE_FLAG)) {
             $this->initializeHooks();
         }
     }

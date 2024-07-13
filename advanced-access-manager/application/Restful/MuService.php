@@ -10,8 +10,11 @@
 /**
  * RESTful API service that must be on at all time
  *
+ * @since 6.9.35 https://github.com/aamplugin/advanced-access-manager/issues/398
+ * @since 6.9.33 Initial implementation of the class
+ *
  * @package AAM
- * @version 6.9.33
+ * @version 6.9.35
  */
 class AAM_Restful_MuService
 {
@@ -23,25 +26,38 @@ class AAM_Restful_MuService
      *
      * @return void
      *
+     * @since 6.9.35 https://github.com/aamplugin/advanced-access-manager/issues/398
+     * @since 6.9.33 Initial implementation of the method
+     *
      * @access protected
-     * @version 6.9.33
+     * @version 6.9.35
      */
     protected function __construct()
     {
         // Covering the bug in WordPress core that does not set correct user local
         add_filter('rest_pre_dispatch', function($r, $_, $request) {
+            global $wp_locale_switcher;
+
             if (strpos($request->get_route(), '/aam/') !== false) {
-                switch_to_user_locale(get_current_user_id());
+                $user_id = get_current_user_id();
+
+                if (function_exists('switch_to_user_locale')) {
+                    switch_to_user_locale($user_id);
+                } elseif (is_a($wp_locale_switcher, 'WP_Locale_Switcher')) {
+                    $wp_locale_switcher->switch_to_locale(
+                        get_user_locale($user_id), $user_id
+                    );
+                }
             }
 
             return $r;
         }, 10, 3);
 
-        // Roles & Users are always available to support AAM UI
+        // Few services always available to support AAM UI
         AAM_Restful_RoleService::bootstrap();
         AAM_Restful_UserService::bootstrap();
-
-        // Adding additional filters to share common functionality for RESTful API
+        AAM_Restful_ConfigService::bootstrap();
+        AAM_Restful_SettingService::bootstrap();
 
         // Get currently managed "Access Level" (previously known as "subject")
         add_filter(

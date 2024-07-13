@@ -37,6 +37,14 @@ class AAM_Service_Shortcode
      */
     protected function __construct()
     {
+        add_filter('aam_get_config_filter', function($result, $key) {
+            if ($key === self::FEATURE_FLAG && is_null($result)) {
+                $result = true;
+            }
+
+            return $result;
+        }, 10, 2);
+
         if (is_admin()) {
             // Hook that returns the detailed information about the nature of the
             // service. This is used to display information about service on the
@@ -52,7 +60,7 @@ class AAM_Service_Shortcode
             }, 25);
         }
 
-        if (AAM_Core_Config::get(self::FEATURE_FLAG, true)) {
+        if (AAM_Framework_Manager::configs()->get_config(self::FEATURE_FLAG)) {
             $this->initializeHooks();
         }
     }
@@ -76,8 +84,19 @@ class AAM_Service_Shortcode
 
                 return $shortcode->process();
             });
+
             add_shortcode('aam-login', function($args, $content) {
-                $shortcode = new AAM_Service_Shortcode_Handler_LoginForm($args, $content);
+                $shortcode = new AAM_Service_Shortcode_Handler_LoginForm(
+                    $args, $content
+                );
+
+                return $shortcode->run();
+            });
+
+            add_shortcode('aam-post-list', function($args, $content) {
+                $shortcode = new AAM_Service_Shortcode_Handler_PostList(
+                    $args, $content
+                );
 
                 return $shortcode->run();
             });
