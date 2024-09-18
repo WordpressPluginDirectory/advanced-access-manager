@@ -673,9 +673,9 @@
                             success: function () {
                                 var subject = getAAM().getSubject();
 
-                                // Bug fix https://github.com/aamplugin/advanced-access-manager/issues/102
-                                if (subject.type === 'role' && subject.id === $(_this).data('role')) {
-                                    window.localStorage.removeItem('aam-subject');
+                                if (subject.type === 'role'
+                                    && subject.id === $(_this).data('role')
+                                ) {
                                     location.reload();
                                 } else {
                                     $('#role-list').DataTable().ajax.reload();
@@ -5162,7 +5162,9 @@
                                 );
                             }
 
-                            if (code) {
+                            if (code
+                                && ['page_redirect', 'url_redirect'].includes(type)
+                            ) {
                                 payload.http_status_code = parseInt(code, 10);
                             }
 
@@ -7033,13 +7035,6 @@
                 $('#aam-subject-name').val(),
                 $('#aam-subject-level').val()
             );
-        } else if (window.localStorage.getItem('aam-subject')) {
-            const subject = JSON.parse(window.localStorage.getItem('aam-subject'));
-            this.setSubject(
-                subject.type,
-                subject.id,
-                subject.name
-            );
         } else if (getLocal().subject.type) {
             this.setSubject(
                 getLocal().subject.type,
@@ -7155,9 +7150,6 @@
             name: name,
             level: level
         };
-
-        // Persist the subject in the local storage
-        window.localStorage.setItem('aam-subject', JSON.stringify(this.subject));
 
         // Reset all roles
        if ($('#role-list').is('.dataTable')) {
