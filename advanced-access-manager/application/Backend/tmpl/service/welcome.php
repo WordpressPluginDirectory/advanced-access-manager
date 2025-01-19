@@ -51,31 +51,6 @@
                             </div>
                         </div>
                     </div>
-                    <div class="panel panel-default">
-                        <div class="panel-heading" role="tab" id="announcement-b-heading">
-                            <h4 class="panel-title">
-                                <a role="button" data-toggle="collapse" data-parent="#announcement-block" href="#announcement-b" aria-controls="announcement-b">
-                                    <?php echo __('Announcing AAM Version 7', AAM_KEY); ?>
-                                </a>
-                            </h4>
-                        </div>
-
-                        <div id="announcement-b" class="panel-collapse collapse" role="tabpanel" aria-labelledby="announcement-b-heading">
-                            <div class="panel-body">
-                                <p>
-                                    We are excited to announce that Advanced Access Manager (AAM) version 7 is coming soon, with the alpha release planned for the end of October 2024.
-                                    This version introduces one-of-a-kind access management framework designed for developers, addressing user requests for expanded API functionality.
-                                    The new PHP framework simplifies access control for WordPress, building on the current AAM system that already saves developers significant time.
-                                </p>
-                                <p>
-                                    To encourage testing, we're offering a limited number of free premium add-ons to those who are interested.
-                                    We appreciate your support and look forward to your feedback in shaping the future of access management for WordPress!
-                                </p>
-
-                                <a href="https://aamportal.com/announcement/aam-v7" target="_blank" class="btn btn-danger btn-block aam-mt-1">Learn More →</a>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <span class="aam-common-use-cases aam-mt-2"><?php echo __('Introduction', AAM_KEY); ?></span>
@@ -335,48 +310,6 @@
                                 </a>
 
                                 <a href="https://aamportal.com/video/manage-wordpress-jwt-tokens-and-restful-api-authentication" target="_blank" class="btn btn-danger btn-block aam-mt-1">Learn More →</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <span class="aam-common-use-cases aam-mt-4">Need for Guidance?</span>
-
-                <div class="panel-group" id="support-feature" role="tablist" aria-multiselectable="true">
-                    <div class="panel panel-default">
-                        <div class="panel-heading" role="tab" id="menu-support-heading">
-                            <h4 class="panel-title">
-                                <a role="button" data-toggle="collapse" data-parent="#support-feature" href="#menu-support" aria-controls="menu-support">
-                                    <?php echo __('Contact Us', AAM_KEY); ?>
-                                </a>
-                            </h4>
-                        </div>
-
-                        <div id="menu-support" class="panel-collapse collapse" role="tabpanel" aria-labelledby="menu-support-heading">
-                            <div class="panel-body">
-                                <div class="form-group">
-                                    <label>Your Name (optional)</label>
-                                    <input type="text" id="support-fullname" class="form-control" placeholder="How should we call you?" />
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Email Address<span class="aam-asterix">*</span></label>
-                                    <input type="email" class="form-control" id="support-email" placeholder="Enter email that we can use to follow-up with you" />
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Message<span class="aam-asterix">*</span></label>
-                                    <textarea class="form-control" id="support-message" rows="7" placeholder="Enter your message..."></textarea>
-                                    <small class="text-muted">
-                                        <span id="message-countdown">700</span> characters
-                                    </small>
-                                </div>
-
-                                <p>
-                                    <a href="#" class="btn btn-primary" id="send-message-btn" disabled>
-                                        <?php echo __('Send the Message', AAM_KEY); ?>
-                                    </a>
-                                </p>
                             </div>
                         </div>
                     </div>

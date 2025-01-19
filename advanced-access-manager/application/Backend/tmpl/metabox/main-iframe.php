@@ -25,6 +25,13 @@
 
     <div class="wrap">
         <div class="row">
+            <div class="col-xs-12">
+                <p class="aam-notification text-center text-larger">
+                    <strong>AAM version 7 is coming soon!</strong> Please check <a href="https://aamportal.com/announcement/aam7" target="_blank">this article for details</a>.
+                </p>
+            </div>
+        </div>
+        <div class="row">
             <div class="col-xs-12 col-md-8">
                 <?php echo static::loadTemplate(dirname(__DIR__) . '/page/current-subject.php'); ?>
 
@@ -60,6 +67,46 @@
                     </div>
                 <?php } ?>
 
+                <?php if (AAM_Service_SecurityAudit::bootstrap()->is_enabled()) { ?>
+                <?php
+                    $score = AAM_Service_SecurityAudit::bootstrap()->get_score();
+                    $grade = AAM_Service_SecurityAudit::bootstrap()->get_score_grade()
+                ?>
+                <div class="metabox-holder shared-metabox">
+                    <div class="postbox" style="border:none !important;">
+                        <div class="panel-group" style="margin-bottom:0" id="security-score-block" role="tablist" aria-multiselectable="true">
+                            <div class="panel panel-default" style="border-radius: 0">
+                                <div class="panel-heading" role="tab" id="security-score-heading">
+                                    <h4 class="panel-title">
+                                        <a role="button" data-toggle="collapse" data-parent="#security-score-block" href="#security-score" aria-controls="security-score" style="font-size: 2rem;">
+                                            <?php echo sprintf(
+                                                __('AAM Security Score: %s %s', AAM_KEY),
+                                                empty($score) ? 'Unknown' : $score,
+                                                empty($grade) ? '' : "({$grade})"
+                                            ); ?>
+                                        </a>
+                                    </h4>
+                                </div>
+
+                                <div id="security-score" class="panel-collapse collapse" role="tabpanel" aria-labelledby="security-score-heading">
+                                    <div class="panel-body">
+                                        <?php if (!empty($score)) {  ?>
+                                        <div class="gauge-wrapper">
+                                            <div id="security_gauge" class="gauge-container" data-score="<?php echo esc_attr($score); ?>"></div>
+                                        </div>
+                                        <?php } else { ?>
+                                            <p class="aam-info"><?php echo __('Run first security scan to identify your website AAM security score', AAM_KEY); ?></p>
+                                        <?php } ?>
+
+                                        <a href="#" target="_blank" id="security_audit_tab" class="btn btn-primary btn-block">Learn More →</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php } ?>
+
                 <?php do_action('aam_top_right_column_action'); ?>
 
                 <div class="metabox-holder shared-metabox">
@@ -76,12 +123,6 @@
                                         <span><?php echo __('Settings', AAM_KEY); ?></span>
                                     </a>
                                 <?php } ?>
-                                <?php if (AAM_Service_SecurityAudit::bootstrap()->is_enabled()) { ?>
-                                    <a href="#" title="Security Scan" data-type="audit" class="aam-area">
-                                        <i class="icon-eye"></i>
-                                        <span><?php echo __('Security Scan', AAM_KEY); ?></span>
-                                    </a>
-                                <?php } ?>
                                 <?php if (current_user_can('aam_manage_addons')) { ?>
                                     <a href="#" title="Premium" data-type="extensions" class="aam-area">
                                         <i class="icon-cubes"></i>
@@ -89,7 +130,7 @@
                                     </a>
                                 <?php } ?>
                                 <?php if (current_user_can('aam_view_help_btn')) { ?>
-                                    <a href="https://aamportal.com/support?ref=plugin" target="_blank" title="Documentation">
+                                    <a href="https://aamportal.com/documentation?ref=plugin" target="_blank" title="Documentation">
                                         <i class="icon-help-circled"></i>
                                         <span><?php echo __('Docs', AAM_KEY); ?></span>
                                     </a>
@@ -235,11 +276,11 @@
                             <div class="aam-postbox-inside text-center">
                                 <p class="text-larger aam-info text-left">
                                     <strong>Need help interpreting your security scan report and identifying the next steps to address critical issues?</strong>
-                                    Email us your report at <a href="mailto:support@aamplugin.com">support@aamplugin.com</a>, and we'll schedule a video consultation to guide you.
+                                    Contact us and we'll schedule a video consultation to guide you.
                                     Please note, this is a paid service, and we will send an invoice prior to the session.
                                 </p>
                                 <a href="#" class="btn btn-info btn-block download-latest-report""><?php echo __('Download Latest Report', AAM_KEY); ?></a>
-                                <a href="mailto:support@aamplugin.com" class="btn btn-primary btn-block"><?php echo __('Contact Us', AAM_KEY); ?></a>
+                                <a href="https://aamportal.com/contact-us" target="_blank" class="btn btn-primary btn-block"><?php echo __('Contact Us', AAM_KEY); ?></a>
                             </div>
                         </div>
                     </div>
