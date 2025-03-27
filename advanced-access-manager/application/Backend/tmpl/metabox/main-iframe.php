@@ -68,9 +68,9 @@
                 <?php } ?>
 
                 <?php if (AAM_Service_SecurityAudit::bootstrap()->is_enabled()) { ?>
-                <?php
-                    $score = AAM_Service_SecurityAudit::bootstrap()->get_score();
-                    $grade = AAM_Service_SecurityAudit::bootstrap()->get_score_grade()
+                    <?php
+                    $score = AAM_Service_SecurityAudit::getInstance()->get_score();
+                    $grade = AAM_Service_SecurityAudit::getInstance()->get_score_grade()
                 ?>
                 <div class="metabox-holder shared-metabox">
                     <div class="postbox" style="border:none !important;">
@@ -78,9 +78,17 @@
                             <div class="panel panel-default" style="border-radius: 0">
                                 <div class="panel-heading" role="tab" id="security-score-heading">
                                     <h4 class="panel-title">
-                                        <a role="button" data-toggle="collapse" data-parent="#security-score-block" href="#security-score" aria-controls="security-score" style="font-size: 2rem;">
+                                        <a
+                                            role="button"
+                                            data-toggle="collapse"
+                                            data-parent="#security-score-block"
+                                            href="#security-score"
+                                            aria-controls="security-score"
+                                            aria-expanded="true"
+                                            style="font-size: 2rem;"
+                                        >
                                             <?php echo sprintf(
-                                                __('AAM Security Score: %s %s', AAM_KEY),
+                                                __('Your Security Score: %s %s', 'advanced-access-manager'),
                                                 empty($score) ? 'Unknown' : $score,
                                                 empty($grade) ? '' : "({$grade})"
                                             ); ?>
@@ -88,17 +96,21 @@
                                     </h4>
                                 </div>
 
-                                <div id="security-score" class="panel-collapse collapse" role="tabpanel" aria-labelledby="security-score-heading">
+                                <div id="security-score" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="security-score-heading">
                                     <div class="panel-body">
                                         <?php if (!empty($score)) {  ?>
-                                        <div class="gauge-wrapper">
-                                            <div id="security_gauge" class="gauge-container" data-score="<?php echo esc_attr($score); ?>"></div>
-                                        </div>
+                                            <div class="gauge-wrapper">
+                                                <div id="security_gauge" class="gauge-container" data-score="<?php echo esc_attr($score); ?>"></div>
+                                            </div>
                                         <?php } else { ?>
-                                            <p class="aam-info"><?php echo __('Run first security scan to identify your website AAM security score', AAM_KEY); ?></p>
+                                            <p class="aam-notification text-larger"><?php echo __('Run your first AAM Security Audit now and uncover hidden vulnerabilities, elevated privileges, and broken access controls before they become a threat.', 'advanced-access-manager'); ?></p>
                                         <?php } ?>
 
-                                        <a href="#" target="_blank" id="security_audit_tab" class="btn btn-primary btn-block">Learn More →</a>
+                                        <?php if (empty($score)) {  ?>
+                                            <a href="#" target="_blank" id="security_audit_tab" class="btn btn-primary btn-block"><?php echo __('Run First Security Scan', 'advanced-access-manager'); ?></a>
+                                        <?php } else { ?>
+                                            <a href="#" target="_blank" id="goto_security_audit_tab" class="btn btn-primary btn-block"><?php echo __('Review The Report', 'advanced-access-manager'); ?></a>
+                                        <?php } ?>
                                     </div>
                                 </div>
                             </div>
@@ -269,22 +281,6 @@
                         </div>
                     </div>
                 <?php } ?>
-
-                <div class="metabox-holder audit-metabox" style="display:none;">
-                    <div class="postbox">
-                        <div class="inside">
-                            <div class="aam-postbox-inside text-center">
-                                <p class="text-larger aam-info text-left">
-                                    <strong>Need help interpreting your security scan report and identifying the next steps to address critical issues?</strong>
-                                    Contact us and we'll schedule a video consultation to guide you.
-                                    Please note, this is a paid service, and we will send an invoice prior to the session.
-                                </p>
-                                <a href="#" class="btn btn-info btn-block download-latest-report""><?php echo __('Download Latest Report', AAM_KEY); ?></a>
-                                <a href="https://aamportal.com/contact-us" target="_blank" class="btn btn-primary btn-block"><?php echo __('Contact Us', AAM_KEY); ?></a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <?php echo static::loadTemplate(dirname(__DIR__) . '/page/subject-panel.php'); ?>
                 <?php echo static::loadTemplate(dirname(__DIR__) . '/page/subject-panel-advanced.php'); ?>

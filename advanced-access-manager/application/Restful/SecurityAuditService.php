@@ -77,6 +77,16 @@ class AAM_Restful_SecurityAuditService
                         && current_user_can('aam_trigger_audit');
                 }
             ));
+
+            // Share complete report
+            $this->_register_route('/service/audit/summary', array(
+                'methods'             => WP_REST_Server::READABLE,
+                'callback'            => array($this, 'prepare_summary'),
+                'permission_callback' => function () {
+                    return current_user_can('aam_manager')
+                        && current_user_can('aam_share_audit_results');
+                }
+            ));
         });
     }
 
@@ -130,6 +140,140 @@ class AAM_Restful_SecurityAuditService
         }
 
         return $response;
+    }
+
+    /**
+     * Prepare executive audit summary
+     *
+     * @return WP_REST_Response
+     * @access public
+     *
+     * @version 7.0.0
+     */
+    public function prepare_summary()
+    {
+        // Step #1. Prepare the audit report
+        $payload = json_encode([
+            'license'  => defined('AAM_COMPLETE_PACKAGE_LICENSE') ? AAM_COMPLETE_PACKAGE_LICENSE : null,
+            'instance' => wp_hash('aam', 'nonce'),
+            'report'   => $this->_generate_shareable_results()
+        ]);
+
+        // Step #2. Upload the report
+        $result = wp_remote_post('https://api.aamportal.com/audit/summary', [
+            'body'        => $payload,
+            'timeout'     => 30,
+            'data_format' => 'body',
+            'headers'     => [
+                'Content-Type' => 'application/json'
+            ]
+        ]);
+
+        // Get HTTP code
+        $http_code = wp_remote_retrieve_response_code($result);
+
+        // Check for errors in the response. This is hard error handling
+        if (is_wp_error($result)) {
+            throw new RuntimeException($result->get_error_message());
+        }
+
+        // Get the response from the server
+        $result = json_decode(wp_remote_retrieve_body($result), true);
+
+        // Store the copy of the executive summary, but only if success
+        if ($http_code === 200) {
+            AAM_Core_API::updateOption(
+                AAM_Service_SecurityAudit::DB_SUMMARY_OPTION,
+                $result,
+                false
+            );
+        }
+
+        // Prepare the response to UI
+        $response = [
+            'status'=> $http_code == 200 ? 'success' : 'failure'
+        ];
+
+        if ($http_code === 200) {
+            $response['results'] = $result;
+        } elseif (!empty($result['reason'])) {
+            $response['reason'] = $result['reason'];
+        } else {
+            $response['reason'] = __(
+                'Hm, something went wrong. Please try again later.',
+                'advanced-access-manager'
+            );
+        }
+
+        return rest_ensure_response($response);
+    }
+
+    /**
+     * Prepare shareable audit results
+     *
+     * Aggregating data and removing unnecessary information
+     *
+     * @return array
+     * @access private
+     *
+     * @version 7.0.0
+     */
+    private function _generate_shareable_results()
+    {
+        $results = [];
+        $service = AAM_Service_SecurityAudit::getInstance();
+        $checks  = $service->get_steps();
+
+        foreach($service->read() as $check => $data) {
+            if (!empty($data['is_completed']) && !empty($data['issues'])) {
+                $executor  = $checks[$check]['executor'];
+                $shareable = call_user_func(
+                    "{$executor}::issues_to_shareable", $data
+                );
+
+                if (!empty($shareable)) {
+                    $results[$check] = $shareable;
+                }
+            }
+        }
+
+        return [
+            'results' => $results,
+            'plugins' => $this->_get_plugin_list()
+        ];
+    }
+
+    /**
+     * Get list of all installed plugins
+     *
+     * @return array
+     * @access private
+     *
+     * @version 7.0.0
+     */
+    private function _get_plugin_list()
+    {
+        if (!function_exists('get_plugins')) {
+            require_once(ABSPATH . 'wp-admin/includes/plugin.php');
+        }
+
+        // Get all installed plugins
+        $plugins = get_plugins();
+
+        // Initialize an array to store the plugin information
+        $result = [];
+
+        // Loop through each plugin and check its status
+        foreach ($plugins as $plugin_path => $plugin) {
+            $result[] = [
+                'name'        => $plugin['Name'],
+                'version'     => $plugin['Version'],
+                'is_active'   => is_plugin_active($plugin_path),
+                'plugin_path' => $plugin_path
+            ];
+        }
+
+        return $result;
     }
 
     /**
