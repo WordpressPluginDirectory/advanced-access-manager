@@ -24,21 +24,16 @@ class AAM_Service_Metaboxes
      * @return void
      * @access protected
      *
-     * @version 7.0.0
+     * @version 7.0.4
      */
     protected function __construct()
     {
-        if (is_admin()) {
-            // Hook that initialize the AAM UI part of the service
-            add_action('aam_initialize_ui_action', function () {
-                AAM_Backend_Feature_Main_Metabox::register();
-            });
-        }
-
         // Register RESTful API endpoints
         AAM_Restful_Metabox::bootstrap();
 
-        $this->initialize_hooks();
+        add_action('init', function() {
+            $this->initialize_hooks();
+        }, PHP_INT_MAX);
     }
 
     /**
@@ -47,10 +42,17 @@ class AAM_Service_Metaboxes
      * @return void
      * @access protected
      *
-     * @version 7.0.0
+     * @version 7.0.4
      */
     protected function initialize_hooks()
     {
+        if (is_admin()) {
+            // Hook that initialize the AAM UI part of the service
+            add_action('aam_initialize_ui_action', function () {
+                AAM_Backend_Feature_Main_Metabox::register();
+            });
+        }
+
         // Manager WordPress metaboxes
         add_action('in_admin_header', function () {
             global $post;
@@ -85,7 +87,7 @@ class AAM_Service_Metaboxes
      * @return void
      * @access private
      *
-     * @version 7.0.2
+     * @version 7.0.3
      */
     private function _initialize_metaboxes($post_type)
     {
@@ -108,8 +110,10 @@ class AAM_Service_Metaboxes
 
                             // If $args contain taxonomy - prepend it to ensure that
                             // it is unique
-                            if (!empty($box['args']['taxonomy'])) {
-                                $slug = $box['args']['taxonomy'] . '_' . $slug;
+                            $tax = AAM::api()->misc->get($box, 'args.taxonomy');
+
+                            if (!empty($tax) && is_string($tax)) {
+                                $slug = $tax . '_' . $slug;
                             }
 
                             // If Closure is used for callback, use the ID instead

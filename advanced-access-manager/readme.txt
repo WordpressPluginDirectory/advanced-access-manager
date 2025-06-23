@@ -3,8 +3,8 @@ Contributors: vasyltech
 Tags: security, access control, user roles, restricted content, api security
 Requires at least: 5.8.0
 Requires PHP: 5.6.0
-Tested up to: 6.8.0
-Stable tag: 7.0.2
+Tested up to: 6.8.1
+Stable tag: 7.0.6
 
 Your WordPress security starts within — with AAM. Take control of your WordPress website and solve security gaps today.
 
@@ -59,6 +59,27 @@ AAM is trusted by over 150,000 websites to deliver enterprise-grade security wit
 11. Improve your website security
 
 == Changelog ==
+
+= 7.0.6 =
+* Fixed: Incorrectly handling subpages with policies [https://github.com/aamplugin/advanced-access-manager/issues/473](https://github.com/aamplugin/advanced-access-manager/issues/473)
+* Fixed: AAM removes slashes in JSON access policy [https://github.com/aamplugin/advanced-access-manager/issues/472](https://github.com/aamplugin/advanced-access-manager/issues/472)
+* Fixed: URL Access service does not handle URLs with query params correctly [https://github.com/aamplugin/advanced-access-manager/issues/470](https://github.com/aamplugin/advanced-access-manager/issues/470)
+* Fixed: The aam_backend_login widget is unavailable [https://github.com/aamplugin/advanced-access-manager/issues/469](https://github.com/aamplugin/advanced-access-manager/issues/469)
+* Changes: Improve clarity around premium add-on status [https://github.com/aamplugin/advanced-access-manager/issues/471](https://github.com/aamplugin/advanced-access-manager/issues/471)
+
+= 7.0.5 =
+* Fixed: ConfigPress are not taken into consideration before init hook [https://github.com/aamplugin/advanced-access-manager/issues/468](https://github.com/aamplugin/advanced-access-manager/issues/468)
+* Fixed: AAM does not display default terms pin anymore [https://github.com/aamplugin/advanced-access-manager/issues/467] (https://github.com/aamplugin/advanced-access-manager/issues/467)
+* Fixed: Uncaught TypeError: array_key_exists(): Argument #2 ($array) must be of type array, null given in /../Framework/Service/Policies.php:661 [https://github.com/aamplugin/advanced-access-manager/issues/466](https://github.com/aamplugin/advanced-access-manager/issues/466)
+
+= 7.0.4 =
+* Change: Making sure that all AAM hooks are triggered only after init [https://github.com/aamplugin/advanced-access-manager/issues/465](https://github.com/aamplugin/advanced-access-manager/issues/465)
+
+= 7.0.3 =
+* Fixed: The Condition block is not handled properly when Operator is OR [https://github.com/aamplugin/advanced-access-manager/issues/464](https://github.com/aamplugin/advanced-access-manager/issues/464)
+* Fixed: Can Not Edit Password Protected Block Pages [https://github.com/aamplugin/advanced-access-manager/issues/463](https://github.com/aamplugin/advanced-access-manager/issues/463)
+* Fixed: Uncaught Error: Cannot use object of type WP_Post_Type as array in /../Metaboxes.php on line 383 [https://github.com/aamplugin/advanced-access-manager/issues/461](https://github.com/aamplugin/advanced-access-manager/issues/461)
+* Feature Request: Re-introduce the "Unified Multisite Configuration Sync" option [https://github.com/aamplugin/advanced-access-manager/issues/462](https://github.com/aamplugin/advanced-access-manager/issues/462)
 
 = 7.0.2 =
 * Fixed: Restricted post with Teaser Message is not enforced [https://github.com/aamplugin/advanced-access-manager/issues/460](https://github.com/aamplugin/advanced-access-manager/issues/460)

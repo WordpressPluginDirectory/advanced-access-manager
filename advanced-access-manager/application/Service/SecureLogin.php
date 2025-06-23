@@ -38,26 +38,29 @@ class AAM_Service_SecureLogin
      * @return void
      * @access protected
      *
-     * @version 7.0.0
+     * @version 7.0.6
      */
     protected function __construct()
     {
         add_filter('aam_get_config_filter', function($result, $key) {
-            if (is_null($result) && array_key_exists($key, self::DEFAULT_CONFIG)) {
+            if (empty($result) && array_key_exists($key, self::DEFAULT_CONFIG)) {
                 $result = self::DEFAULT_CONFIG[$key];
             }
 
             return $result;
         }, 10, 2);
 
-        if (is_admin()) {
-            // Register additional tab for the Settings
-            add_action('aam_initialize_ui_action', function () {
-                AAM_Backend_Feature_Settings_Security::register();
-            });
-        }
+        // Register custom RESTful API endpoint for login
+        AAM_Restful_SecureLogin::bootstrap();
 
-        $this->initialize_hooks();
+        // Register custom frontend Login widget
+        add_action('widgets_init', function () {
+            register_widget('AAM_Backend_Widget_Login');
+        });
+
+        add_action('init', function() {
+            $this->initialize_hooks();
+        }, PHP_INT_MAX);
     }
 
     /**
@@ -66,17 +69,16 @@ class AAM_Service_SecureLogin
      * @return void
      * @access protected
      *
-     * @version 7.0.0
+     * @version 7.0.6
      */
     protected function initialize_hooks()
     {
-        // Register custom frontend Login widget
-        add_action('widgets_init', function () {
-            register_widget('AAM_Backend_Widget_Login');
-        });
-
-        // Register custom RESTful API endpoint for login
-        AAM_Restful_SecureLogin::bootstrap();
+        if (is_admin()) {
+            // Register additional tab for the Settings
+            add_action('aam_initialize_ui_action', function () {
+                AAM_Backend_Feature_Settings_Security::register();
+            });
+        }
 
         // Redefine the wp-login.php header message
         add_filter('login_message', function($message) {
