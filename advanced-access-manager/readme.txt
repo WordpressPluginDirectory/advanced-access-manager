@@ -3,8 +3,8 @@ Contributors: vasyltech
 Tags: security, access control, user roles, restricted content, api security
 Requires at least: 5.8.0
 Requires PHP: 5.6.0
-Tested up to: 6.8.1
-Stable tag: 7.0.7
+Tested up to: 6.9.0
+Stable tag: 7.0.11
 
 Your WordPress security starts within — with AAM. Take control of your WordPress website and solve security gaps today.
 
@@ -59,6 +59,23 @@ AAM is trusted by over 150,000 websites to deliver enterprise-grade security wit
 11. Improve your website security
 
 == Changelog ==
+
+= 7.0.11 =
+* Fixed: Advanced Multi-Role setup fails to hide posts [https://github.com/aamplugin/advanced-access-manager/issues/491](https://github.com/aamplugin/advanced-access-manager/issues/491)
+* Fixed: Security Audit References are incorrectly displayed after page refresh [https://github.com/aamplugin/advanced-access-manager/issues/490](https://github.com/aamplugin/advanced-access-manager/issues/490)
+* Fixed: PHP warning when security audit fails due to unexpected error [https://github.com/aamplugin/advanced-access-manager/issues/489](https://github.com/aamplugin/advanced-access-manager/issues/489)
+* Fixed: Can't deselect a parent role [https://github.com/aamplugin/advanced-access-manager/issues/488](https://github.com/aamplugin/advanced-access-manager/issues/488)
+
+= 7.0.10 =
+* Fixed: Permalink has empty href when post is password protected [https://github.com/aamplugin/advanced-access-manager/issues/487](https://github.com/aamplugin/advanced-access-manager/issues/487)
+* Fixed: Roles & Capabilities are not syncing in multisite [https://github.com/aamplugin/advanced-access-manager/issues/485](https://github.com/aamplugin/advanced-access-manager/issues/485)
+
+= 7.0.9 =
+* Fixed: PHP Parse error in php7.4 [https://github.com/aamplugin/advanced-access-manager/issues/482](https://github.com/aamplugin/advanced-access-manager/issues/482)
+* Fixed: Uncaught OutOfRangeException: Cannot find user by identifier 0 in /../Framework/Utility/AccessLevels.php:198 [https://github.com/aamplugin/advanced-access-manager/issues/481](https://github.com/aamplugin/advanced-access-manager/issues/481)
+
+= 7.0.8 =
+* Changed: Move to PHP composer for vendor dependencies [https://github.com/aamplugin/advanced-access-manager/issues/480](https://github.com/aamplugin/advanced-access-manager/issues/480)
 
 = 7.0.7 =
 * Fixed: Uncaught Error: preg_match(): Argument #2 ($subject) must be of type string, array given in /.../Framework/Policy/Typecast.php on line 37 [https://github.com/aamplugin/advanced-access-manager/issues/474](https://github.com/aamplugin/advanced-access-manager/issues/474)
